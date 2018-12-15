@@ -9,7 +9,7 @@ Adventures in CPU Simulation
     + `pip install -r requirements.txt`
 - Use the following shebang: `#!/usr/bin/env python`
 - Before running any script, activate your venv: `./venv/bin/activate`
-- Before releasing, use pip freeze > requirements.txt
+- Before releasing, use `pip freeze > requirements.txt`
     + remove `pkg-resources` line from requirements.txt
 - To run tests: `python -m unittest discover`
 - To run tests with coverage: `coverage run -m unittest discover`
@@ -24,4 +24,4 @@ Adventures in CPU Simulation
 - [MIPS-\*]()
 
 ## References
-- [bitvector](https://engineering.purdue.edu/kak/dist/BitVector-3.4.8.html)
+- [BitVector](https://engineering.purdue.edu/kak/dist/BitVector-3.4.8.html)
