@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import logging
+instruction_log = logging.getLogger('instruction')
 
 class instruction():
     def __init__(self, opcode, destination=(), source=(), immediate=()):
