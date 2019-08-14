@@ -43,15 +43,41 @@ class XNOR:
 
 
 class Logic:
-    def __init__(self, gates=[]):
-        self.gates = gates
+    def __init__(self, gates=(), netlist=None):
+        if netlist:
+            self.netlist = netlist
+        else:
+            self.gates = gates
 
     def input(self, _in):
+        if self.gates:
+            return self.feed_gates(_in)
+        else:
+            return self.feed_netlist(_in)
+
+    def feed_gates(self, _in):
         output = None
         for gate in self.gates:
             output = gate.input(_in)
             _in = output
         return output
+
+    def feed_netlist(self, _in):
+        return None
+
+
+class Netlist:
+    def __init__(self, inputs, outputs, nets, gates):
+        self.inputs = inputs.split(',')
+        self.outputs = outputs.split(',')
+        self.nets = [net for net in nets]
+        self.gates = []
+
+    def parse(self, netlist):
+        assert(len(netlist) == 3)
+
+    def __str__(self):
+        return f"inputs: {self.inputs}\noutputs: {self.outputs}\nnets: {self.nets}"
 
 
 class NAND(Logic):
@@ -62,6 +88,12 @@ class NAND(Logic):
 class NOR(Logic):
     def __init__(self):
         super(NOR, self).__init__([OR(), NOT()])
+
+
+class HalfAdder(Logic):
+    def __init(self):
+
+        super(HalfAdder, self).__init__()
 
 
 class ComponentTests(unittest.TestCase):
@@ -166,3 +198,31 @@ class ComponentTests(unittest.TestCase):
         e = b_ab.input((b, c))
         output = d_e.input((d, e))
         self.assertEqual(1, output)
+
+    def test_half_adder(self):
+        a = 0
+        b = 0
+        xor_ = XOR()
+        and_ = AND()
+        sum_ = xor_.input((a, b))
+        carry = and_.input((a, b))
+        self.assertEqual(0, sum_)
+        self.assertEqual(0, carry)
+
+        self.assertEqual(0, xor_.input((0, 0)))
+        self.assertEqual(0, and_.input((0, 0)))
+
+        self.assertEqual(1, xor_.input((0, 1)))
+        self.assertEqual(0, and_.input((0, 1)))
+
+        self.assertEqual(1, xor_.input((1, 0)))
+        self.assertEqual(0, and_.input((1, 0)))
+
+        self.assertEqual(0, xor_.input((1, 1)))
+        self.assertEqual(1, and_.input((1, 1)))
+
+        ha = HalfAdder()
+        n = Netlist("a,b", "s,c", "", [XOR, AND])
+        print(n)
+
+
