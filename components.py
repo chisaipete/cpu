@@ -1,4 +1,6 @@
+import sys
 import unittest
+from collections import OrderedDict
 
 
 class AND:
@@ -43,9 +45,12 @@ class XNOR:
 
 
 class Logic:
+    gates = None
+    netlist = None
+
     def __init__(self, gates=(), netlist=None):
         if netlist:
-            self.netlist = netlist
+            self.netlist = Netlist(netlist)
         else:
             self.gates = gates
 
@@ -63,21 +68,10 @@ class Logic:
         return output
 
     def feed_netlist(self, _in):
-        return None
-
-
-class Netlist:
-    def __init__(self, inputs, outputs, nets, gates):
-        self.inputs = inputs.split(',')
-        self.outputs = outputs.split(',')
-        self.nets = [net for net in nets]
-        self.gates = []
-
-    def parse(self, netlist):
-        assert(len(netlist) == 3)
+        return self.netlist.input(_in)
 
     def __str__(self):
-        return f"inputs: {self.inputs}\noutputs: {self.outputs}\nnets: {self.nets}"
+        return str(self.netlist)
 
 
 class NAND(Logic):
@@ -90,10 +84,84 @@ class NOR(Logic):
         super(NOR, self).__init__([OR(), NOT()])
 
 
-class HalfAdder(Logic):
-    def __init(self):
+class Netlist:
+    def __init__(self, text):
+        self.inputs = OrderedDict()
+        self.outputs = {}
+        self.nets = {}
+        self.gates = {}
+        self.gid = 0
+        if text:
+            self.parse(text)
 
-        super(HalfAdder, self).__init__()
+    def parse(self, netlist):
+        for line in netlist.split("\n"):
+            line = line.strip()
+            if line:
+                if line.startswith("i"):
+                    self.process_input_line(line)
+                elif line.startswith("o"):
+                    self.process_output_line(line)
+                elif line.startswith("g"):
+                    self.process_gate_line(line)
+
+    def process_input_line(self, line):
+        for input in line.split()[1].split(','):
+            self.inputs[input] = None
+
+    def process_output_line(self, line):
+        for output in line.split()[1].split(','):
+            self.outputs[output] = None
+
+    def process_gate_line(self, line):
+        gate = self.get_gate(line.split()[1])
+        inputs = line.split()[2].split(',')
+        outputs = line.split()[3].split(',')
+        self.gates[self.gid] = (gate, inputs, outputs)
+        self.gid += 1
+
+    def get_gate(self, name):
+        return getattr(sys.modules[__name__], name)
+
+    def input(self, _in):
+        for index, key in enumerate(self.inputs):
+            self.inputs[key] = _in[index]
+        assert all(self.inputs), "not all inputs defined!"
+        while not self.all_keys_defined(self.outputs):
+            for gate in self.gates:
+                for input in self.gates[gate][1]:
+                    if not self.inputs[input]:
+                        continue
+                self.outputs[self.gates[gate][2][0]] = self.gates[gate][0]().input(tuple([self.inputs[i] for i in self.inputs]))
+        return_value = tuple([self.outputs[o] for o in self.outputs])
+        self.clear_ports()
+        return return_value
+
+    def clear_ports(self):
+        for key in self.inputs:
+            self.inputs[key] = None
+        for key in self.outputs:
+            self.outputs[key] = None
+
+    def all_keys_defined(self, dictionary):
+        for key in dictionary:
+            if dictionary[key] is None:
+                return False
+        return True
+
+    def __str__(self):
+        return f"inputs: {self.inputs}\noutputs: {self.outputs}\nnets: {self.nets}\ngates: {self.gates}"
+
+
+class HalfAdder(Logic):
+    def __init__(self):
+        netlist = '''
+        i a,b
+        o s,c
+        g XOR a,b s
+        g AND a,b c
+        '''
+        super(HalfAdder, self).__init__(netlist=netlist)
 
 
 class ComponentTests(unittest.TestCase):
@@ -222,7 +290,9 @@ class ComponentTests(unittest.TestCase):
         self.assertEqual(1, and_.input((1, 1)))
 
         ha = HalfAdder()
-        n = Netlist("a,b", "s,c", "", [XOR, AND])
-        print(n)
+        self.assertEqual((0, 0), ha.input((0, 0)))
+        self.assertEqual((1, 0), ha.input((0, 1)))
+        self.assertEqual((1, 0), ha.input((1, 0)))
+        self.assertEqual((0, 1), ha.input((1, 1)))
 
 
