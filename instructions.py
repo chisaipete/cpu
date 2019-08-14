@@ -2,7 +2,8 @@
 import logging
 instruction_log = logging.getLogger('instruction')
 
-class instruction():
+
+class Instruction:
     def __init__(self, opcode, destination=(), source=(), immediate=()):
         # opcode = n-bit vector
         # destination = tuple (number, names)

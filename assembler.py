@@ -2,7 +2,8 @@ import os
 import logging
 assembler_log = logging.getLogger('assembler')
 
-class assembler():
+
+class Assembler:
     def __init__(self, isa):
         self.isa = isa
         self.input_path = None
