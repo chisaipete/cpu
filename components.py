@@ -100,14 +100,20 @@ class Netlist:
             if line:
                 if line.startswith("i"):
                     self.process_input_line(line)
+                elif line.startswith("n"):
+                    self.process_net_line(line)
                 elif line.startswith("o"):
                     self.process_output_line(line)
                 elif line.startswith("g"):
                     self.process_gate_line(line)
 
     def process_input_line(self, line):
-        for input in line.split()[1].split(','):
-            self.inputs[input] = None
+        for input_ in line.split()[1].split(','):
+            self.inputs[input_] = None
+
+    def process_net_line(self, line):
+        for net in line.split()[1].split(','):
+            self.nets[net] = None
 
     def process_output_line(self, line):
         for output in line.split()[1].split(','):
@@ -128,14 +134,38 @@ class Netlist:
             self.inputs[key] = _in[index]
         assert all(self.inputs), "not all inputs defined!"
         while not self.all_keys_defined(self.outputs):
+            # print(self)
             for gate in self.gates:
-                for input in self.gates[gate][1]:
-                    if not self.inputs[input]:
-                        continue
-                self.outputs[self.gates[gate][2][0]] = self.gates[gate][0]().input(tuple([self.inputs[i] for i in self.inputs]))
+                if self.inputs_defined(gate):
+                    # print('All inputs defined!')
+                    if self.output_to_net(gate):
+                        self.nets[self.gates[gate][2][0]] = self.gates[gate][0]().input(tuple([self.get_input_or_net_value(in_) for in_ in self.gates[gate][1]]))
+                    else:
+                        self.outputs[self.gates[gate][2][0]] = self.gates[gate][0]().input(tuple([self.get_input_or_net_value(in_) for in_ in self.gates[gate][1]]))
+
         return_value = tuple([self.outputs[o] for o in self.outputs])
         self.clear_ports()
         return return_value
+
+    def output_to_net(self, gate):
+        return self.gates[gate][2][0] in self.nets
+
+    def inputs_defined(self, gate):
+        # print(gate, self.gates[gate])
+        for input_ in self.gates[gate][1]:
+            # print(input_, self.get_input_or_net_value(input_))
+            if self.get_input_or_net_value(input_) is None:
+                return False
+        return True
+
+    def get_input_or_net_value(self, signal):
+        signal_input =  self.inputs.get(signal)
+        signal_net = self.nets.get(signal)
+
+        if signal_input is not None:
+            return signal_input
+        if signal_net is not None:
+            return signal_net
 
     def clear_ports(self):
         for key in self.inputs:
@@ -157,11 +187,26 @@ class HalfAdder(Logic):
     def __init__(self):
         netlist = '''
         i a,b
-        o s,c
-        g XOR a,b s
-        g AND a,b c
+        o sum,c_out
+        g XOR a,b sum
+        g AND a,b c_out
         '''
         super(HalfAdder, self).__init__(netlist=netlist)
+
+
+class FullAdder(Logic):
+    def __init__(self):
+        netlist = '''
+        i a,b,c_in
+        o sum,c_out
+        n d,e,f
+        g XOR a,b d
+        g XOR d,c_in sum
+        g AND c_in,d e
+        g AND a,b f
+        g OR  e,f c_out
+        '''
+        super(FullAdder, self).__init__(netlist=netlist)
 
 
 class ComponentTests(unittest.TestCase):
@@ -294,5 +339,17 @@ class ComponentTests(unittest.TestCase):
         self.assertEqual((1, 0), ha.input((0, 1)))
         self.assertEqual((1, 0), ha.input((1, 0)))
         self.assertEqual((0, 1), ha.input((1, 1)))
+
+    # @unittest.skip
+    def test_full_adder(self):
+        fa = FullAdder()
+        self.assertEqual((0, 0), fa.input((0, 0, 0)))
+        self.assertEqual((1, 0), fa.input((0, 0, 1)))
+        self.assertEqual((1, 0), fa.input((0, 1, 0)))
+        self.assertEqual((0, 1), fa.input((0, 1, 1)))
+        self.assertEqual((1, 0), fa.input((1, 0, 0)))
+        self.assertEqual((0, 1), fa.input((1, 0, 1)))
+        self.assertEqual((0, 1), fa.input((1, 1, 0)))
+        self.assertEqual((1, 1), fa.input((1, 1, 1)))
 
 
