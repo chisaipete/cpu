@@ -93,7 +93,7 @@ class Risc16Assembler(Assembler):
                                     if 'opcode' in entry[0]:
                                         continue
                                     elif 'reg' in entry[0]:
-                                        register_fields.append(fields.pop(0).replace('r',''))
+                                        register_fields.append(fields.pop(0).replace('r', ''))
                                     elif 'imm' in entry[0]:
                                         immediate = fields.pop(0)
                                     elif '0' in entry[0]:
@@ -146,7 +146,7 @@ class Risc16Assembler(Assembler):
                         for c in range(idx, int(imm)+idx):
                             output_bitlines[c] = BitVector(size=self.isa.word_size)
                         space = int(imm)
-                elif directive in ['halt','nop']:
+                elif directive in ['halt', 'nop']:
                     output_bitlines[idx][2] = self.isa.assembler_directives[directive][0]
                     output_bitlines[idx][4] = list(self.isa.assembler_directives[directive][1])
                     if len(self.isa.assembler_directives[directive]) > 2:
@@ -154,7 +154,7 @@ class Risc16Assembler(Assembler):
 
             inst = output_bitlines[idx]
             # instruction encoding
-            if isinstance(inst, list): # still need to encode
+            if isinstance(inst, list):  # still need to encode
                 instruction_format = self.isa.opcode_format[self.isa.opcode_map[inst[2]][1]]
                 # print(instruction_format)
                 # print(output_bitlines[idx])
@@ -173,7 +173,6 @@ class Risc16Assembler(Assembler):
 
             # print(output_bitlines[idx])
             idx += space
-
 
         error = False
         for idx, entry in enumerate(output_bitlines):

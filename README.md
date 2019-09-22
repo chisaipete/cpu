@@ -22,6 +22,7 @@ Adventures in CPU Simulation
 - [LC-3]()
 - [LC-896]()
 - [MIPS-\*]()
+- [Hack Computer](https://www.nand2tetris.org)
 
 ## References
 - [BitVector](https://engineering.purdue.edu/kak/dist/BitVector-3.4.8.html)

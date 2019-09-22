@@ -15,7 +15,7 @@ class Assembler:
         self.input_path = path
         assembler_log.info(f"checking input file {self.input_path}")
         if self.input_path:
-            if  os.path.exists(self.input_path):
+            if os.path.exists(self.input_path):
                 with open(self.input_path) as ip:
                     self.input = ip.read().split('\n')
                 self.parse_assembly()
