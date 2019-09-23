@@ -11,20 +11,20 @@ class Risc16(Isa):
         super(Risc16, self).__init__('risc16')
         self.word_size = 16
         self.opcode_map = { # code, format
-            'add'  : (BitVector(bitstring='000'), 'rrr'),
-            'addi' : (BitVector(bitstring='001'), 'rri'),
-            'nand' : (BitVector(bitstring='010'), 'rrr'),
-            'lui'  : (BitVector(bitstring='011'), 'ri'),
-            'sw'   : (BitVector(bitstring='100'), 'rri'),
-            'lw'   : (BitVector(bitstring='101'), 'rri'),
-            'beq'  : (BitVector(bitstring='110'), 'rri'),
-            'jalr' : (BitVector(bitstring='111'), 'rri'),
+            'add':  (BitVector(bitstring='000'), 'rrr'),
+            'addi': (BitVector(bitstring='001'), 'rri'),
+            'nand': (BitVector(bitstring='010'), 'rrr'),
+            'lui':  (BitVector(bitstring='011'), 'ri'),
+            'sw':   (BitVector(bitstring='100'), 'rri'),
+            'lw':   (BitVector(bitstring='101'), 'rri'),
+            'beq':  (BitVector(bitstring='110'), 'rri'),
+            'jalr': (BitVector(bitstring='111'), 'rri'),
         }
 
         self.opcode_format = {
-            'rrr' : [('opcode',3),('regA',3),('regB',3),('0',4),('regC',3)],
-            'rri' : [('opcode',3),('regA',3),('regB',3),('immsign',7)],
-            'ri'  : [('opcode',3),('regA',3),('imm',10)],
+            'rrr' : [('opcode', 3), ('regA', 3), ('regB', 3), ('0', 4), ('regC', 3)],
+            'rri' : [('opcode', 3), ('regA', 3), ('regB', 3), ('immsign', 7)],
+            'ri'  : [('opcode', 3), ('regA', 3), ('imm', 10)],
         }
 
         self.assembler_directives = { # check documentation
@@ -54,8 +54,7 @@ class Risc16Assembler(Assembler):
             fields = []
             register_fields = []
             immediate = ''
-            final_bitline = BitVector(bitstring='')
-            # comments, all after # is ignored            
+            # comments, all after # is ignored
             removed_comments = line.strip().split('#')[0].strip()
             # print(removed_comments)
             if removed_comments:
@@ -165,7 +164,6 @@ class Risc16Assembler(Assembler):
                     elif 'reg' in entry[0]:
                         out_bv += BitVector(intVal=int(inst[4].pop(0)), size=entry[1])
                     elif 'imm' in entry[0]:
-                        # final_bitline += b.BitVector(bitstring=immediate)
                         out_bv += BitVector(intVal=int(inst[5]), size=entry[1])
                     elif '0' in entry[0]:
                         out_bv += BitVector(size=entry[1])
