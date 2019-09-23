@@ -183,6 +183,20 @@ class Netlist:
         return f"inputs: {self.inputs}\noutputs: {self.outputs}\nnets: {self.nets}\ngates: {self.gates}"
 
 
+class Multiplexor(Logic):
+    def __init__(self):
+        netlist = '''
+        '''
+        super(Multiplexor, self).__init__(netlist=netlist)
+
+
+class Demultiplexor(Logic):
+    def __init__(self):
+        netlist = '''
+        '''
+        super(Demultiplexor, self).__init__(netlist=netlist)
+
+
 class HalfAdder(Logic):
     def __init__(self):
         netlist = '''
