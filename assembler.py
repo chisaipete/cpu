@@ -10,6 +10,7 @@ class Assembler:
         self.input = None
         self.output_path = None
         self.output = None
+        self.line_breaks = False
 
     def input_assembly(self, path=None):
         self.input_path = path
@@ -35,4 +36,8 @@ class Assembler:
             assembler_log.info(f"writing binary to file: {self.output_path}")
             with open(self.output_path, 'w') as op:
                 for line in self.output:
-                    op.write(str(line))
+                    if self.line_breaks:
+                        op.write(str(line))
+                        op.write('\n')
+                    else:
+                        op.write(str(line))

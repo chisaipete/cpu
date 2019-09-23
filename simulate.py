@@ -37,6 +37,10 @@ if __name__ == "__main__":
         from risc16 import *
         asb = Risc16Assembler()
         asb.input_assembly(args.code)
+    elif args.arch == 'hack':
+        from hack import *
+        asb = HackAssembler()
+        asb.input_assembly(args.code)
 
     pc_value = Wire(size=asb.isa.word_size)
     fetched_instruction = Wire(size=asb.isa.word_size)

@@ -40,6 +40,7 @@ class Risc16(Isa):
 class Risc16Assembler(Assembler):
     def __init__(self):
         super(Risc16Assembler, self).__init__(Risc16())
+        # self.line_breaks = True
 
     def parse_assembly(self):
         risc16_log.info('applying the risc16 assembly format to input')
