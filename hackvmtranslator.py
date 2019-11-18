@@ -39,6 +39,7 @@ class VMTranslator(Translator):
     def __init__(self):
         super(VMTranslator, self).__init__(Hack())
         self.line_breaks = True
+        self.branch_id = 0
 
     def parse_vm(self):
         hack_log.info('translating the hack vm input to hack assembly')
@@ -85,8 +86,24 @@ class VMTranslator(Translator):
             ])
         elif command == 'eq':
             assembly.extend([
-
+                # # pop x
+                # SP--
+                '@SP', 'M=M-1',
+                # D=*SP
+                'A=M', 'D=M',
+                # # 'pop' y
+                # SP--
+                '@SP', 'M=M-1',
+                # if D==0 JNE -> (not_equal)
+                'A=M', 'D=D-M', f'@NOT_EQ_{self.branch_id}', 'D;JNE',
+                # *(SP) = 1
+                '@SP', 'A=M', 'M=1', f'@END_EQ_{self.branch_id}', '0;JMP',
+                #(not_equal) *SP = 0
+                f'(NOT_EQ_{self.branch_id})', '@SP', 'A=M', 'M=0',
+                #(end_equal) SP++
+                f'(END_EQ_{self.branch_id})', '@SP', 'M=M+1'
             ])
+            self.branch_id += 1
         return assembly
 
     def xlat_push(self, segment, index):
