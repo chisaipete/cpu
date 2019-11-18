@@ -85,7 +85,22 @@ class VMTranslator(Translator):
             ])
         elif command == 'eq':
             assembly.extend([
-
+                # # pop x
+                # SP--
+                '@SP', 'M=M-1',
+                # D=*SP
+                'A=M', 'D=M',
+                # # 'pop' y
+                # SP--
+                '@SP', 'M=M-1',
+                # if D==0 JNE -> (not_equal)
+                '@NOT_EQ', 'D ; JNE',
+                # *(SP) = 1
+                '@SP', 'A=M', 'M=1', '@END_EQ', 'null ; JMP',
+                #(not_equal) *SP = 0
+                '(NOT_EQ)', '@SP', 'A=M', 'M=0',
+                #(end_equal) SP++
+                '(END_EQ)', '@SP', 'M=M+1'
             ])
         return assembly
 
