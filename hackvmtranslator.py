@@ -66,16 +66,16 @@ class VMTranslator(Translator):
             return Command.ARITHMETIC, sp_line[0], None
 
     def xlat_arithmetic(self, command):
+        # TODO: optionally print comments
         assembly = [f'// {command}']
         if command == 'add':
-            # TODO: optionally print comments
             assembly.extend([
-                # # pop x
+                # # pop y
                 # SP--
                 '@SP', 'M=M-1',
                 # D=*SP
                 'A=M', 'D=M',
-                # # 'pop' y
+                # # 'pop' x
                 # SP--
                 '@SP', 'M=M-1',
                 # # push x + y
@@ -84,26 +84,145 @@ class VMTranslator(Translator):
                 # SP++
                 '@SP', 'M=M+1'
             ])
-        elif command == 'eq':
+
+        elif command == 'sub':
             assembly.extend([
-                # # pop x
+                # # pop y
                 # SP--
                 '@SP', 'M=M-1',
                 # D=*SP
                 'A=M', 'D=M',
-                # # 'pop' y
+                # # 'pop' x
+                # SP--
+                '@SP', 'M=M-1',
+                # # push x - y
+                # *SP=D-*SP
+                'A=M', 'M=M-D',
+                # SP++
+                '@SP', 'M=M+1'
+            ])
+
+        elif command == 'neg':
+            assembly.extend([
+                # # pop y
+                # SP--
+                '@SP', 'M=M-1',
+                # # push -y
+                # *SP=-D
+                'A=M', 'M=-M',
+                # SP++
+                '@SP', 'M=M+1'
+            ])
+
+        elif command == 'and':
+            assembly.extend([
+                # # pop y
+                # SP--
+                '@SP', 'M=M-1',
+                # D=*SP
+                'A=M', 'D=M',
+                # # 'pop' x
+                # SP--
+                '@SP', 'M=M-1',
+                # # push x & y
+                # *SP=D&*SP
+                'A=M', 'M=D&M',
+                # SP++
+                '@SP', 'M=M+1'
+            ])
+
+        elif command == 'or':
+            assembly.extend([
+                # # pop y
+                # SP--
+                '@SP', 'M=M-1',
+                # D=*SP
+                'A=M', 'D=M',
+                # # 'pop' x
+                # SP--
+                '@SP', 'M=M-1',
+                # # push x | y
+                # *SP=D|*SP
+                'A=M', 'M=D|M',
+                # SP++
+                '@SP', 'M=M+1'
+            ])
+
+        elif command == 'not':
+            assembly.extend([
+                # # pop y
+                # SP--
+                '@SP', 'M=M-1',
+                # # push !y
+                # *SP=!D
+                'A=M', 'M=!M',
+                # SP++
+                '@SP', 'M=M+1'
+            ])
+
+        elif command == 'eq':
+            assembly.extend([
+                # # pop y
+                # SP--
+                '@SP', 'M=M-1',
+                # D=*SP
+                'A=M', 'D=M',
+                # # 'pop' x
                 # SP--
                 '@SP', 'M=M-1',
                 # if D==0 JNE -> (not_equal)
                 'A=M', 'D=D-M', f'@NOT_EQ_{self.branch_id}', 'D;JNE',
-                # *(SP) = 1
-                '@SP', 'A=M', 'M=1', f'@END_EQ_{self.branch_id}', '0;JMP',
+                # *(SP) = -1
+                '@SP', 'A=M', 'M=-1', f'@END_EQ_{self.branch_id}', '0;JMP',
                 #(not_equal) *SP = 0
                 f'(NOT_EQ_{self.branch_id})', '@SP', 'A=M', 'M=0',
                 #(end_equal) SP++
                 f'(END_EQ_{self.branch_id})', '@SP', 'M=M+1'
             ])
             self.branch_id += 1
+
+        elif command == 'lt':
+            assembly.extend([
+                # # pop y
+                # SP--
+                '@SP', 'M=M-1',
+                # D=*SP
+                'A=M', 'D=M',
+                # # 'pop' x
+                # SP--
+                '@SP', 'M=M-1',
+                # if D < 0 JLE -> (not_lt)
+                'A=M', 'D=D-M', f'@NOT_LT_{self.branch_id}', 'D;JLE',
+                # *(SP) = -1
+                '@SP', 'A=M', 'M=-1', f'@END_LT_{self.branch_id}', '0;JMP',
+                # (not_lt) *SP = 0
+                f'(NOT_LT_{self.branch_id})', '@SP', 'A=M', 'M=0',
+                # (end_lt) SP++
+                f'(END_LT_{self.branch_id})', '@SP', 'M=M+1'
+            ])
+            self.branch_id += 1
+
+        elif command == 'gt':
+            assembly.extend([
+                # # pop y
+                # SP--
+                '@SP', 'M=M-1',
+                # D=*SP
+                'A=M', 'D=M',
+                # # 'pop' x
+                # SP--
+                '@SP', 'M=M-1',
+                # if D > 0 JGE -> (not_gt)
+                'A=M', 'D=D-M', f'@NOT_GT_{self.branch_id}', 'D;JGE',
+                # *(SP) = -1
+                '@SP', 'A=M', 'M=-1', f'@END_GT_{self.branch_id}', '0;JMP',
+                # (not_gt) *SP = 0
+                f'(NOT_GT_{self.branch_id})', '@SP', 'A=M', 'M=0',
+                # (end_gt) SP++
+                f'(END_GT_{self.branch_id})', '@SP', 'M=M+1'
+            ])
+            self.branch_id += 1
+
         return assembly
 
     def xlat_push(self, segment, index):
@@ -118,6 +237,7 @@ class VMTranslator(Translator):
                 # SP++
                 '@SP', 'M=M+1'
             ])
+
         return assembly
 
 
@@ -141,5 +261,7 @@ if __name__ == "__main__":
             vma.output_assembly(args.asm_file.replace('.vm', '.asm'))
     else:
         vma = VMTranslator()
-        vma.input_vm('sample.vm')
-        vma.output_assembly('sample1.asm')
+        vma.input_vm('C:\\Users\\cmpet\\Dropbox\\projects\\nand2tetris\\projects\\07\\MemoryAccess\\BasicTest\\BasicTest.vm')
+        # vma.input_vm('sample.vm')
+        # vma.output_assembly('sample1.asm')
+        vma.output_assembly('C:\\Users\\cmpet\\Dropbox\\projects\\nand2tetris\\projects\\07\\MemoryAccess\\BasicTest\\BasicTest.asm')
