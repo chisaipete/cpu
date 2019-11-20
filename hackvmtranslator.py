@@ -50,11 +50,14 @@ class VMTranslator(Translator):
                 removed_comments = line.strip().split('//')[0].strip()
                 if removed_comments:
                     command_type, segment, index = self.decode_command(line)
+                    operation = segment
                     print(f"{command_type} {line}")
                     if command_type == Command.ARITHMETIC:
-                        self.output.extend(self.xlat_arithmetic(segment))
+                        self.output.extend(self.xlat_arithmetic(operation))
                     elif command_type == Command.PUSH:
                         self.output.extend(self.xlat_push(segment, index))
+                    elif command_type == Command.POP:
+                        self.output.extend(self.xlat_pop(segment, index))
 
     def decode_command(self, line):
         sp_line = line.split()
@@ -230,12 +233,81 @@ class VMTranslator(Translator):
         assembly = [f'// push {segment} {index}']
         if segment == 'constant':
             assembly.extend([
-                # D=index
+                # # D=index
                 f'@{int(index)}', 'D=A',
-                # *SP=D
+                # # *SP=D
                 '@SP', 'A=M', 'M=D',
-                # SP++
+                # # SP++
                 '@SP', 'M=M+1'
+            ])
+        else:
+            if segment == 'pointer':
+                if index == '0':
+                    assembly.append('@THIS')
+                elif index == '1':
+                    assembly.append('@THAT')
+                assembly.extend([
+                    'D=M', '@SP', 'A=M', 'M=D', '@SP', 'M=M+1'
+                ])
+            else:
+                if segment == 'temp':
+                    assembly.append('@5')
+                else:
+                    if segment == 'local':
+                        assembly.append('@LCL')
+                    elif segment == 'argument':
+                        assembly.append('@ARG')
+                    elif segment == 'this':
+                        assembly.append('@THIS')
+                    elif segment == 'that':
+                        assembly.append('@THAT')
+                    assembly.append('A=M')
+
+                assembly.extend([
+                    # # addr = segment + index
+                    'D=A', f'@{index}', 'A=D+A',
+                    # # *SP = *addr
+                    'D=M', '@SP', 'A=M', 'M=D',
+                    # # SP++
+                    '@SP', 'M=M+1'
+                ])
+
+        return assembly
+
+    def xlat_pop(self, segment, index):
+        # TODO: optionally print comments
+        assembly = [f'// pop {segment} {index}']
+        if segment == 'pointer':
+            assembly.extend([
+                '@SP', 'AM=M-1', 'D=M',
+            ])
+            if index == '0':
+                assembly.append('@THIS')
+            elif index == '1':
+                assembly.append('@THAT')
+            assembly.extend([
+                'M=D'
+            ])
+        else:
+            if segment == 'temp':
+                assembly.append('@5')
+            else:
+                if segment == 'local':
+                    assembly.append('@LCL')
+                elif segment == 'argument':
+                    assembly.append('@ARG')
+                elif segment == 'this':
+                    assembly.append('@THIS')
+                elif segment == 'that':
+                    assembly.append('@THAT')
+                assembly.append('A=M')
+            assembly.extend([
+                # # addr = segment + index
+                'D=A', f'@{index}', 'D=D+A',
+                # # pop y
+                '@SP', 'M=M-1',
+                # # *addr = *SP
+                '@R13', 'M=D', '@SP', 'A=M', 'D=M', '@R13', 'A=M', 'M=D'
             ])
 
         return assembly
@@ -261,7 +333,7 @@ if __name__ == "__main__":
             vma.output_assembly(args.asm_file.replace('.vm', '.asm'))
     else:
         vma = VMTranslator()
-        vma.input_vm('C:\\Users\\cmpet\\Dropbox\\projects\\nand2tetris\\projects\\07\\MemoryAccess\\BasicTest\\BasicTest.vm')
+        vma.input_vm('C:\\Users\\cmpet\\Dropbox\\projects\\nand2tetris\\projects\\07\\MemoryAccess\\PointerTest\\PointerTest.vm')
         # vma.input_vm('sample.vm')
         # vma.output_assembly('sample1.asm')
-        vma.output_assembly('C:\\Users\\cmpet\\Dropbox\\projects\\nand2tetris\\projects\\07\\MemoryAccess\\BasicTest\\BasicTest.asm')
+        vma.output_assembly('C:\\Users\\cmpet\\Dropbox\\projects\\nand2tetris\\projects\\07\\MemoryAccess\\PointerTest\\PointerTest.asm')
