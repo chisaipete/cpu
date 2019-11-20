@@ -40,9 +40,11 @@ class VMTranslator(Translator):
         super(VMTranslator, self).__init__(Hack())
         self.line_breaks = True
         self.branch_id = 0
+        self.static_id = ''
 
     def parse_vm(self):
         hack_log.info('translating the hack vm input to hack assembly')
+        self.static_id = os.path.splitext(os.path.basename(self.input_path))[0]
         self.output = []
         for line in self.input:
             line = line.strip()
@@ -249,6 +251,11 @@ class VMTranslator(Translator):
                 assembly.extend([
                     'D=M', '@SP', 'A=M', 'M=D', '@SP', 'M=M+1'
                 ])
+            elif segment == 'static':
+                assembly.append(f'@{self.static_id}.{index}')
+                assembly.extend([
+                    'D=M', '@SP', 'A=M', 'M=D', '@SP', 'M=M+1'
+                ])
             else:
                 if segment == 'temp':
                     assembly.append('@5')
@@ -285,6 +292,14 @@ class VMTranslator(Translator):
                 assembly.append('@THIS')
             elif index == '1':
                 assembly.append('@THAT')
+            assembly.extend([
+                'M=D'
+            ])
+        elif segment == 'static':
+            assembly.extend([
+                '@SP', 'AM=M-1', 'D=M',
+            ])
+            assembly.append(f'@{self.static_id}.{index}')
             assembly.extend([
                 'M=D'
             ])
@@ -333,7 +348,7 @@ if __name__ == "__main__":
             vma.output_assembly(args.asm_file.replace('.vm', '.asm'))
     else:
         vma = VMTranslator()
-        vma.input_vm('C:\\Users\\cmpet\\Dropbox\\projects\\nand2tetris\\projects\\07\\MemoryAccess\\PointerTest\\PointerTest.vm')
+        vma.input_vm('C:\\Users\\cmpet\\Dropbox\\projects\\nand2tetris\\projects\\07\\MemoryAccess\\StaticTest\\StaticTest.vm')
         # vma.input_vm('sample.vm')
         # vma.output_assembly('sample1.asm')
-        vma.output_assembly('C:\\Users\\cmpet\\Dropbox\\projects\\nand2tetris\\projects\\07\\MemoryAccess\\PointerTest\\PointerTest.asm')
+        vma.output_assembly('C:\\Users\\cmpet\\Dropbox\\projects\\nand2tetris\\projects\\07\\MemoryAccess\\StaticTest\\StaticTest.asm')
