@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import sys
 from enum import Enum, auto
 
 from hack import Hack
@@ -40,28 +41,41 @@ class VMTranslator(Translator):
         super(VMTranslator, self).__init__(Hack())
         self.line_breaks = True
         self.branch_id = 0
-        self.static_id = ''
+        self.current_file = ''
+        self.output = []
 
     def parse_vm(self):
         hack_log.info('translating the hack vm input to hack assembly')
-        self.static_id = os.path.splitext(os.path.basename(self.input_path))[0]
-        self.output = []
+        self.current_file = os.path.splitext(os.path.basename(self.input_path))[0]
         for line in self.input:
             line = line.strip()
             if line:
                 removed_comments = line.strip().split('//')[0].strip()
                 if removed_comments:
-                    command_type, segment, index = self.decode_command(line)
-                    operation = segment
+                    try:
+                        command_type, segment, index = self.decode_command(line)
+                        operation = segment
+                        label = segment
+                    except TypeError:
+                        hack_log.error(f"unrecognized line: {line}")
+                        sys.exit()
                     print(f"{command_type} {line}")
                     if command_type == Command.ARITHMETIC:
-                        self.output.extend(self.xlat_arithmetic(operation))
+                        self.output.extend(self.write_arithmetic(operation))
                     elif command_type == Command.PUSH:
-                        self.output.extend(self.xlat_push(segment, index))
+                        self.output.extend(self.write_push(segment, index))
                     elif command_type == Command.POP:
-                        self.output.extend(self.xlat_pop(segment, index))
+                        self.output.extend(self.write_pop(segment, index))
+                    elif command_type == Command.LABEL:
+                        self.output.extend(self.write_label(label))
+                    elif command_type == Command.IF:
+                        self.output.extend(self.write_if_goto(label))
 
-    def decode_command(self, line):
+    def set_file_name(self, file_name):
+        self.current_file = file_name
+
+    @staticmethod
+    def decode_command(line):
         sp_line = line.split()
         if sp_line[0] == 'push':
             return Command.PUSH, sp_line[1], sp_line[2]
@@ -69,8 +83,34 @@ class VMTranslator(Translator):
             return Command.POP, sp_line[1], sp_line[2]
         if sp_line[0] in arithmetic_commands + logical_commands:
             return Command.ARITHMETIC, sp_line[0], None
+        if sp_line[0] == 'label':
+            return Command.LABEL, sp_line[1], None
+        if sp_line[0] == 'if-goto':
+            return Command.IF, sp_line[1], None
 
-    def xlat_arithmetic(self, command):
+    def write_init(self):
+        pass
+
+    @staticmethod
+    def write_label(label):
+        return [f"({label})"]
+
+    def write_goto(self, label):
+        pass
+
+    def write_if_goto(self, label):
+        pass
+
+    def write_function(self, function_name, number_of_variables):
+        pass
+
+    def write_call(self, function_name, number_of_arguments):
+        pass
+
+    def write_return(self):
+        pass
+
+    def write_arithmetic(self, command):
         # TODO: optionally print comments
         assembly = [f'// {command}']
         if command == 'add':
@@ -230,7 +270,7 @@ class VMTranslator(Translator):
 
         return assembly
 
-    def xlat_push(self, segment, index):
+    def write_push(self, segment, index):
         # TODO: optionally print comments
         assembly = [f'// push {segment} {index}']
         if segment == 'constant':
@@ -252,7 +292,7 @@ class VMTranslator(Translator):
                     'D=M', '@SP', 'A=M', 'M=D', '@SP', 'M=M+1'
                 ])
             elif segment == 'static':
-                assembly.append(f'@{self.static_id}.{index}')
+                assembly.append(f'@{self.current_file}.{index}')
                 assembly.extend([
                     'D=M', '@SP', 'A=M', 'M=D', '@SP', 'M=M+1'
                 ])
@@ -281,7 +321,7 @@ class VMTranslator(Translator):
 
         return assembly
 
-    def xlat_pop(self, segment, index):
+    def write_pop(self, segment, index):
         # TODO: optionally print comments
         assembly = [f'// pop {segment} {index}']
         if segment == 'pointer':
@@ -299,7 +339,7 @@ class VMTranslator(Translator):
             assembly.extend([
                 '@SP', 'AM=M-1', 'D=M',
             ])
-            assembly.append(f'@{self.static_id}.{index}')
+            assembly.append(f'@{self.current_file}.{index}')
             assembly.extend([
                 'M=D'
             ])
@@ -331,24 +371,19 @@ class VMTranslator(Translator):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(description="""""", formatter_class=lambda prog: argparse.RawTextHelpFormatter(prog,max_help_position=80))
-    parser.add_argument('vm_file', metavar='xxx.vm', type=str, nargs='?', help='vm file to convert')
+    parser.add_argument('vm_src', metavar='xxx.vm', type=str, nargs='?', help='vm file / directory to convert')
     args = parser.parse_args()
 
-    if args.vm_file:
-        if args.vm_file == 'all':
-            for file in os.listdir(os.getcwd()):
-                if file.endswith('.vm'):
-                    print(file)
-                    vma = VMTranslator()
-                    vma.input_vm(file)
-                    vma.output_assembly(file.replace('.vm', '.asm'))
-        else:
-            vma = VMTranslator()
-            vma.input_vm(args.asm_file)
-            vma.output_assembly(args.asm_file.replace('.vm', '.asm'))
-    else:
-        vma = VMTranslator()
-        vma.input_vm('C:\\Users\\cmpet\\Dropbox\\projects\\nand2tetris\\projects\\07\\MemoryAccess\\StaticTest\\StaticTest.vm')
-        # vma.input_vm('sample.vm')
-        # vma.output_assembly('sample1.asm')
-        vma.output_assembly('C:\\Users\\cmpet\\Dropbox\\projects\\nand2tetris\\projects\\07\\MemoryAccess\\StaticTest\\StaticTest.asm')
+    if args.vm_src:
+        if os.path.isfile(args.vm_src) and args.vm_src.endswith('.vm'):
+            vmt = VMTranslator()
+            vmt.input_vm(args.vm_src)
+            vmt.output_assembly(args.vm_src.replace('.vm', '.asm'))
+        elif os.path.isdir(args.vm_src):
+            vm_output_assembly = os.path.join(args.vm_src, args.vm_src + '.asm')
+            with open(vm_output_assembly, 'w') as oa:
+                for file in os.listdir(args.vm_src):
+                    if os.path.isfile(file) and file.endswith('.vm'):
+                        vmt = VMTranslator()
+                        vmt.input_vm(file)
+                        vmt.output_assembly(vm_output_assembly, oa)

@@ -29,15 +29,21 @@ class Translator:
         if self.input:
             translator_log.info("parsing input")
 
-    def output_assembly(self, path=None):
+    def output_assembly(self, path=None, file_handle=None):
         self.output_path = path
-        translator_log.info(f"attempting to write assembly to {self.output_path}")
         if self.output_path and self.input:
-            translator_log.info(f"writing assembly to file: {self.output_path}")
-            with open(self.output_path, 'w') as op:
-                for line in self.output:
-                    if self.line_breaks:
-                        op.write(str(line))
-                        op.write('\n')
-                    else:
-                        op.write(str(line))
+            if file_handle:
+                translator_log.info(f"appending assembly to {self.output_path}")
+                self.write_output(file_handle)
+            else:
+                translator_log.info(f"writing assembly to file: {os.path.abspath(self.output_path)}")
+                with open(self.output_path, 'w') as op:
+                    self.write_output(op)
+
+    def write_output(self, file_handle):
+        for line in self.output:
+            if self.line_breaks:
+                file_handle.write(str(line))
+                file_handle.write('\n')
+            else:
+                file_handle.write(str(line))
