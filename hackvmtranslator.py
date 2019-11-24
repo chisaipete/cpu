@@ -56,6 +56,7 @@ class VMTranslator(Translator):
                         command_type, segment, index = self.decode_command(line)
                         operation = segment
                         label = segment
+                        local_vars = index
                     except TypeError:
                         hack_log.error(f"unrecognized line: {line}")
                         sys.exit()
@@ -70,6 +71,10 @@ class VMTranslator(Translator):
                         self.output.extend(self.write_label(label))
                     elif command_type == Command.IF:
                         self.output.extend(self.write_if_goto(label))
+                    elif command_type == Command.GOTO:
+                        self.output.extend(self.write_goto(label))
+                    elif command_type == Command.FUNCTION:
+                        self.output.extend(self.write_function(label, local_vars))
 
     def set_file_name(self, file_name):
         self.current_file = file_name
@@ -87,6 +92,10 @@ class VMTranslator(Translator):
             return Command.LABEL, sp_line[1], None
         if sp_line[0] == 'if-goto':
             return Command.IF, sp_line[1], None
+        if sp_line[0] == 'goto':
+            return Command.GOTO, sp_line[1], None
+        if sp_line[0] == 'function':
+            return Command.FUNCTION, sp_line[1], sp_line[2]
 
     def write_init(self):
         pass
@@ -95,11 +104,20 @@ class VMTranslator(Translator):
     def write_label(label):
         return [f"({label})"]
 
-    def write_goto(self, label):
-        pass
+    @staticmethod
+    def write_goto(label):
+        return [
+            f'@{label}', '0;JMP'
+        ]
 
-    def write_if_goto(self, label):
-        pass
+    @staticmethod
+    def write_if_goto(label):
+        return [
+            # D = *(SP--)
+            '@SP', 'AM=M-1', 'D=M',
+            # if D: goto label  (D < 0 -> (D=-1 true)
+            f'@{label}', 'D;JGT',
+        ]
 
     def write_function(self, function_name, number_of_variables):
         pass
