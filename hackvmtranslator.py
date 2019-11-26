@@ -75,6 +75,8 @@ class VMTranslator(Translator):
                         self.output.extend(self.write_goto(label))
                     elif command_type == Command.FUNCTION:
                         self.output.extend(self.write_function(label, local_vars))
+                    elif command_type == Command.RETURN:
+                        self.output.extend(self.write_return())
 
     def set_file_name(self, file_name):
         self.current_file = file_name
@@ -96,6 +98,8 @@ class VMTranslator(Translator):
             return Command.GOTO, sp_line[1], None
         if sp_line[0] == 'function':
             return Command.FUNCTION, sp_line[1], sp_line[2]
+        if sp_line[0] == 'return':
+            return Command.RETURN, None, None
 
     def write_init(self):
         pass
@@ -107,12 +111,14 @@ class VMTranslator(Translator):
     @staticmethod
     def write_goto(label):
         return [
+            f'// goto {label}',
             f'@{label}', '0;JMP'
         ]
 
     @staticmethod
     def write_if_goto(label):
         return [
+            f'// if-goto {label}',
             # D = *(SP--)
             '@SP', 'AM=M-1', 'D=M',
             # if D: goto label  (D < 0 -> (D=-1 true)
@@ -120,13 +126,43 @@ class VMTranslator(Translator):
         ]
 
     def write_function(self, function_name, number_of_variables):
-        pass
+        # # initialize local variables
+        # set LCL to SP
+        # for num of vars, push 0 to stack
+        assembly = [
+            f'// function {function_name} {number_of_variables}',
+            f'({self.current_file}.{function_name})', '@SP', 'D=M', '@LCL', 'M=D'
+        ]
+        for num in range(int(number_of_variables)):
+            assembly.extend(self.write_push('constant', '0'))
+        return assembly
 
     def write_call(self, function_name, number_of_arguments):
         pass
 
-    def write_return(self):
-        pass
+    @staticmethod
+    def write_return():
+        return [
+            '// return',
+            # # endFrame = LCL
+            '@LCL', 'D=M', '@R13', 'M=D',
+            # # returnAddr = *(endFrame - 5)
+            '@5', 'A=D-A', 'D=M', '@R14', 'M=D',
+            # # *ARG = POP [returnVal]
+            '@SP', 'AM=M-1', 'D=M', '@ARG', 'A=M', 'M=D',
+            # # SP = ARG + 1
+            '@ARG', 'D=M+1', '@SP', 'M=D',
+            # # THAT = *(ARG - 1)
+            '@R13', 'AM=M-1', 'D=M', '@THAT', 'M=D',
+            # # THIS = *(ARG - 2)
+            '@R13', 'AM=M-1', 'D=M', '@THIS', 'M=D',
+            # # ARG = *(ARG - 3)
+            '@R13', 'AM=M-1', 'D=M', '@ARG', 'M=D',
+            # # LCL = *(ARG - 4)
+            '@R13', 'AM=M-1', 'D=M', '@LCL', 'M=D',
+            # # GOTO returnAddr
+            '@R14', 'A=M', '0;JMP'
+        ]
 
     def write_arithmetic(self, command):
         # TODO: optionally print comments
