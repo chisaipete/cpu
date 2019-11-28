@@ -12,20 +12,20 @@ class Translator:
         self.output = None
         self.line_breaks = False
 
-    def input_vm(self, path=None):
+    def input_vm(self, path=None, write_init=False):
         self.input_path = path
         translator_log.info(f"checking input file {self.input_path}")
         if self.input_path:
             if os.path.exists(self.input_path):
                 with open(self.input_path) as ip:
                     self.input = ip.read().split('\n')
-                self.parse_vm()
+                self.parse_vm(write_init)
             else:
                 translator_log.error(f"{self.input_path} doesn't exist, or is inaccessible")
         else:
             translator_log.error("no input file given")
 
-    def parse_vm(self):
+    def parse_vm(self, write_init=False):
         if self.input:
             translator_log.info("parsing input")
 

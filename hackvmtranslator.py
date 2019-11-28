@@ -41,12 +41,15 @@ class VMTranslator(Translator):
         super(VMTranslator, self).__init__(Hack())
         self.line_breaks = True
         self.branch_id = 0
+        self.return_id = 0
         self.current_file = ''
         self.output = []
 
-    def parse_vm(self):
+    def parse_vm(self, write_init=False):
         hack_log.info('translating the hack vm input to hack assembly')
         self.current_file = os.path.splitext(os.path.basename(self.input_path))[0]
+        if write_init:
+            self.output.extend(self.write_init())
         for line in self.input:
             line = line.strip()
             if line:
@@ -56,11 +59,11 @@ class VMTranslator(Translator):
                         command_type, segment, index = self.decode_command(line)
                         operation = segment
                         label = segment
-                        local_vars = index
+                        num_vars = index
                     except TypeError:
                         hack_log.error(f"unrecognized line: {line}")
                         sys.exit()
-                    print(f"{command_type} {line}")
+                    # print(f"{command_type} {line}")
                     if command_type == Command.ARITHMETIC:
                         self.output.extend(self.write_arithmetic(operation))
                     elif command_type == Command.PUSH:
@@ -74,9 +77,11 @@ class VMTranslator(Translator):
                     elif command_type == Command.GOTO:
                         self.output.extend(self.write_goto(label))
                     elif command_type == Command.FUNCTION:
-                        self.output.extend(self.write_function(label, local_vars))
+                        self.output.extend(self.write_function(label, num_vars))
                     elif command_type == Command.RETURN:
                         self.output.extend(self.write_return())
+                    elif command_type == Command.CALL:
+                        self.output.extend(self.write_call(label, num_vars))
 
     def set_file_name(self, file_name):
         self.current_file = file_name
@@ -100,9 +105,21 @@ class VMTranslator(Translator):
             return Command.FUNCTION, sp_line[1], sp_line[2]
         if sp_line[0] == 'return':
             return Command.RETURN, None, None
+        if sp_line[0] == 'call':
+            return Command.CALL, sp_line[1], sp_line[2]
 
     def write_init(self):
-        pass
+        assembly = [
+            '// Bootstrap',
+            '@256', 'D=A', '@SP', 'M=D',
+            # '@0', 'D=A',
+            # 'D=D-1', '@LCL', 'M=D',
+            # 'D=D-1', '@ARG', 'M=D',
+            # 'D=D-1', '@THIS', 'M=D',
+            # 'D=D-1', '@THAT', 'M=D',
+        ]
+        assembly.extend(self.write_call('Sys.init', '0'))
+        return assembly
 
     @staticmethod
     def write_label(label):
@@ -122,7 +139,7 @@ class VMTranslator(Translator):
             # D = *(SP--)
             '@SP', 'AM=M-1', 'D=M',
             # if D: goto label  (D < 0 -> (D=-1 true)
-            f'@{label}', 'D;JGT',
+            f'@{label}', 'D;JLT',
         ]
 
     def write_function(self, function_name, number_of_variables):
@@ -131,14 +148,36 @@ class VMTranslator(Translator):
         # for num of vars, push 0 to stack
         assembly = [
             f'// function {function_name} {number_of_variables}',
-            f'({self.current_file}.{function_name})', '@SP', 'D=M', '@LCL', 'M=D'
+            f'({function_name})', '@SP', 'D=M', '@LCL', 'M=D'
         ]
         for num in range(int(number_of_variables)):
             assembly.extend(self.write_push('constant', '0'))
         return assembly
 
     def write_call(self, function_name, number_of_arguments):
-        pass
+        return_address_label = f"{function_name}$ret.{self.return_id}"
+        self.return_id += 1
+        return [
+            f'// call {function_name} {number_of_arguments}',
+            # # push return_address_label
+            f'@{return_address_label}', 'D=A', '@SP', 'A=M', 'M=D', '@SP', 'M=M+1',
+            # # push LCL
+            '@LCL', 'D=M', '@SP', 'A=M', 'M=D', '@SP', 'M=M+1',
+            # # push ARG
+            '@ARG', 'D=M', '@SP', 'A=M', 'M=D', '@SP', 'M=M+1',
+            # # push THIS
+            '@THIS', 'D=M', '@SP', 'A=M', 'M=D', '@SP', 'M=M+1',
+            # # push THAT
+            '@THAT', 'D=M', '@SP', 'A=M', 'M=D', '@SP', 'M=M+1',
+            # # ARG = SP - 5 - number_of_arguments
+            'D=M', '@5', 'D=D-A', f'@{number_of_arguments}', 'D=D-A', '@ARG', 'M=D',
+            # # LCL = SP
+            '@SP', 'D=M', '@LCL', 'M=D',
+            # # goto function_name
+            f'@{function_name}', '0;JMP',
+            # # (return_address_label)
+            f'({return_address_label})'
+        ]
 
     @staticmethod
     def write_return():
@@ -434,10 +473,15 @@ if __name__ == "__main__":
             vmt.input_vm(args.vm_src)
             vmt.output_assembly(args.vm_src.replace('.vm', '.asm'))
         elif os.path.isdir(args.vm_src):
-            vm_output_assembly = os.path.join(args.vm_src, args.vm_src + '.asm')
+            vm_output_assembly = os.path.join(args.vm_src, os.path.basename(args.vm_src) + '.asm')
             with open(vm_output_assembly, 'w') as oa:
+                vm_file_count = 0
                 for file in os.listdir(args.vm_src):
                     if os.path.isfile(file) and file.endswith('.vm'):
                         vmt = VMTranslator()
-                        vmt.input_vm(file)
+                        if vm_file_count == 0:
+                            vmt.input_vm(file, write_init=True)
+                        else:
+                            vmt.input_vm(file)
                         vmt.output_assembly(vm_output_assembly, oa)
+                        vm_file_count += 1
