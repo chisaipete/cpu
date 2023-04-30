@@ -1,5 +1,5 @@
-from isa import Isa
-from assembler import Assembler
+from common.isa import Isa
+from common.assembler import Assembler
 import logging
 from BitVector import BitVector
 risc16_log = logging.getLogger('risc16')
@@ -192,5 +192,5 @@ if __name__ == "__main__":
     # for op in om:
     #     print("{} | {:4} | ".format(om[op][0], op))
     
-    asb.input_assembly('sample.risc16')
-    asb.output_binary('sample.risc16.bin')
+    asb.input_assembly('../input/sample.risc16')
+    asb.output_binary('../output/sample.risc16.bin')

@@ -5,7 +5,8 @@ import sys
 from enum import Enum, auto
 
 from hack import Hack
-from translator import Translator
+from common.translator import Translator
+
 hack_log = logging.getLogger('hack')
 
 arithmetic_commands = [
@@ -312,9 +313,9 @@ class VMTranslator(Translator):
                 'A=M', 'D=D-M', f'@NOT_EQ_{self.branch_id}', 'D;JNE',
                 # *(SP) = -1
                 '@SP', 'A=M', 'M=-1', f'@END_EQ_{self.branch_id}', '0;JMP',
-                #(not_equal) *SP = 0
+                # (not_equal) *SP = 0
                 f'(NOT_EQ_{self.branch_id})', '@SP', 'A=M', 'M=0',
-                #(end_equal) SP++
+                # (end_equal) SP++
                 f'(END_EQ_{self.branch_id})', '@SP', 'M=M+1'
             ])
             self.branch_id += 1
@@ -463,7 +464,10 @@ class VMTranslator(Translator):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    parser = argparse.ArgumentParser(description="""""", formatter_class=lambda prog: argparse.RawTextHelpFormatter(prog,max_help_position=80))
+    parser = argparse.ArgumentParser(
+        description="""""",
+        formatter_class=lambda prog: argparse.RawTextHelpFormatter(prog,
+                                                                   max_help_position=80))
     parser.add_argument('vm_src', metavar='xxx.vm', type=str, nargs='?', help='vm file / directory to convert')
     args = parser.parse_args()
 

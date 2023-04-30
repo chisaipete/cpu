@@ -1,6 +1,6 @@
 # traces
-*.bin
-*.hack
+output/*
+!output/.keep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

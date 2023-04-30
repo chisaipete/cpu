@@ -1,8 +1,8 @@
 import argparse
 import os
 
-from isa import Isa
-from assembler import Assembler
+from common.isa import Isa
+from common.assembler import Assembler
 import logging
 from BitVector import BitVector
 import copy
@@ -220,5 +220,5 @@ if __name__ == "__main__":
             asb.output_binary(args.asm_file.replace('.asm', '.hack'))
     else:
         asb = HackAssembler()
-        asb.input_assembly('sample.asm')
-        asb.output_binary('sample.hack')
+        asb.input_assembly('../input/sample.asm')
+        asb.output_binary('../output/sample.hack')

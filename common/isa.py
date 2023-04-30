@@ -1,4 +1,4 @@
-from instructions import Instruction
+from common.instructions import Instruction
 import logging
 isa_log = logging.getLogger('isa')
 

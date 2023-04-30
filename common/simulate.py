@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 import argparse
 import logging
-from constructs import Register, Wire
+from gates.constructs import Register, Wire
 import BitVector as b
+
 logging.basicConfig(level=logging.INFO)
 simulator_log = logging.getLogger('simulator')
 # instantiate all modules in the CPU
@@ -28,17 +29,22 @@ def tick():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="""""", formatter_class=lambda prog: argparse.RawTextHelpFormatter(prog,max_help_position=80))
+    parser = argparse.ArgumentParser(
+        description="""""",
+        formatter_class=lambda _prog: argparse.RawTextHelpFormatter(_prog,
+                                                                    max_help_position=80))
     parser.add_argument('--arch', '-a', action='store', help="architecture to run", required=True)
     parser.add_argument('--code', '-c', action='store', help="assembly code to run", required=True)
     args = parser.parse_args()
 
     if args.arch == 'risc16':
-        from risc16 import *
+        from risc16.risc16 import *
+
         asb = Risc16Assembler()
         asb.input_assembly(args.code)
     elif args.arch == 'hack':
-        from hack import *
+        from nand2tetris.hack import *
+
         asb = HackAssembler()
         asb.input_assembly(args.code)
 
@@ -48,29 +54,29 @@ if __name__ == "__main__":
     PC = Register(name='Program Counter', size=asb.isa.word_size, _in=pc_value)
     tick_list.append(PC)
 
-### FETCH ###
+    # FETCH ###
 
     instruction_memory = asb.output
     FD_inst = Register(name='Fetched Instruction', size=asb.isa.word_size, _in=fetched_instruction)
     FD_pc = Register(name='Fetch/Decode PC', size=asb.isa.word_size, _in=PC.output)
     tick_list.extend([FD_pc, FD_inst])
 
-### DECODE ###
+    # DECODE ###
 
     DE_pc = Register(name='Decode/Execute PC', size=asb.isa.word_size, _in=FD_pc.output)
     tick_list.append(DE_pc)
 
-### EXECUTE ###
+    # EXECUTE ###
     EM_pc = Register(name='Execute/Memory PC', size=asb.isa.word_size, _in=DE_pc.output)
     tick_list.append(EM_pc)
 
-### MEMORY ###
+    # MEMORY ###
     # data_mux = _logic()
     # MW_wd = _register(name='Memory/Writeback Write Data', size=asb.isa.word_size, _in=)
 
-### WRITEBACK ###
+    # WRITEBACK ###
 
-## RUN ##
+    # RUN ###
     pc = 0
     state()
     for i in range(5):
