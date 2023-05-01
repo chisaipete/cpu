@@ -1,6 +1,7 @@
 # traces
 output/*
 !output/.keep
+input/perfaware
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
